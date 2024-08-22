@@ -99,9 +99,5 @@ get_suffix() {
 }
 
 get_download_suffix() {
-	if [ "$(uname -o)" = "Darwin" ]; then
-		echo -n $(get_suffix)
-	else
-		echo -n "$(get_arch)-$(get_suffix)"
-	fi
+	echo -n "$(get_arch)-$(get_suffix)"
 }
