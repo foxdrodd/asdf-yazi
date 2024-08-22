@@ -9,7 +9,6 @@
 > [!WARNING]
 > Rudimentary plugin, no guarantee that everything is supported.
 
-
 # Contents
 
 - [asdf-yazi  ](#asdf-yazi--)
