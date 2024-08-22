@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for yazi.
 GH_REPO="https://github.com/sxyazi/yazi"
 TOOL_NAME="yazi"
 TOOL_TEST="yazi --version"
@@ -14,7 +13,6 @@ fail() {
 
 curl_opts=(-fsSL)
 
-# NOTE: You might want to remove this if yazi is not hosted on GitHub releases.
 if [ -n "${GITHUB_API_TOKEN:-}" ]; then
 	curl_opts=("${curl_opts[@]}" -H "Authorization: token $GITHUB_API_TOKEN")
 fi
@@ -31,18 +29,16 @@ list_github_tags() {
 }
 
 list_all_versions() {
-	# TODO: Adapt this. By default we simply list the tag names from GitHub releases.
-	# Change this function if yazi has other means of determining installable versions.
 	list_github_tags
 }
 
 download_release() {
-	local version filename url
+	local version filename url download_suffix
 	version="$1"
 	filename="$2"
 
-	# TODO: Adapt the release URL convention for yazi
-	url="$GH_REPO/archive/v${version}.tar.gz"
+	download_suffix=$(get_download_suffix)
+	url="$GH_REPO/releases/download/v${version}/yazi-$download_suffix.zip"
 
 	echo "* Downloading $TOOL_NAME release $version..."
 	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -59,9 +55,10 @@ install_version() {
 
 	(
 		mkdir -p "$install_path"
-		cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
+		local download_suffix
+		download_suffix=$(get_download_suffix)
+		cp -r "$ASDF_DOWNLOAD_PATH"/yazi-"$download_suffix"/* "$install_path"
 
-		# TODO: Assert yazi executable exists.
 		local tool_cmd
 		tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
 		test -x "$install_path/$tool_cmd" || fail "Expected $install_path/$tool_cmd to be executable."
@@ -71,4 +68,40 @@ install_version() {
 		rm -rf "$install_path"
 		fail "An error occurred while installing $TOOL_NAME $version."
 	)
+}
+
+get_arch() {
+	local arch=""
+
+	case "$(uname -m)" in
+	x86_64 | amd64) arch='x86_64' ;;
+	aarch64 | arm64) arch="aarch64" ;;
+	*)
+		fail "Arch '$(uname -m)' not supported!"
+		;;
+	esac
+
+	echo -n $arch
+}
+
+get_suffix() {
+	local os=""
+
+	case "$(uname -o)" in
+	'GNU/Linux') os='unknown-linux-gnu' ;;
+	'Darwin') os="apple-darwin" ;;
+	*)
+		fail "os '$(uname -m)' not supported!"
+		;;
+	esac
+
+	echo -n $os
+}
+
+get_download_suffix() {
+	if [ "$(uname -o)" = "Darwin" ]; then
+		echo -n $(get_suffix)
+	else
+		echo -n "$(get_arch)-$(get_suffix)"
+	fi
 }
